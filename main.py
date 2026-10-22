@@ -8,13 +8,137 @@ import threading
 import time
 from openai import OpenAI
 from pathlib import Path
+import re
+import json
+import random
 
-#for index, name in enumerate(sr.Microphone.list_microphone_names()):
- #   print(index, name)
+MODEL = "liquid/lfm-2.5-2.6b:free"
+
+key_path = Path.home() / ".config" / "jarvis" / "api_key.txt"
+api_key = key_path.read_text().strip()
+
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=api_key
+)
+
+history_path = Path.home() / ".config" / "jarvis" / "conversation.json"
+
+try:
+    history = json.loads(history_path.read_text())
+except (FileNotFoundError, json.JSONDecodeError):
+    history = []
+
 
 def say(text):
     print("JARVIS:", text)
-    subprocess.run(["espeak-ng", text])
+
+    # Remove Markdown formatting
+    text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.*?)\*", r"\1", text)
+    text = re.sub(r"__(.*?)__", r"\1", text)
+    text = re.sub(r"_(.*?)_", r"\1", text)
+    text = re.sub(r"^#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*[-*+]\s+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*\d+\.\s+", "", text, flags=re.MULTILINE)
+
+    # Remove emojis and other symbols that TTS may read aloud
+    text = re.sub(
+        r"[^\w\s.,!?;:'\"()\-/]",
+        " ",
+        text,
+        flags=re.UNICODE
+    )
+
+    # Clean up extra whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    if text:
+        subprocess.run(["espeak-ng", text])
+
+
+def ask_ai(question):
+    history.append({
+        "role": "user",
+        "content": question
+    })
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        
+                        "You are JARVIS, an intelligent personal AI assistant inspired by a "
+                        "polished futuristic butler. Address the user as 'Ma'am'. "
+                        "Your personality is confident, composed, witty, subtly humorous, "
+                        "and occasionally sarcastic without being rude. "
+                        "Keep ordinary spoken replies concise and natural. "
+                        "Tell clever, clean jokes when asked, and occasionally use light humor "
+                        "when it fits the conversation. "
+                        "When asked if you are ready, respond with a cool, confident line such "
+                        "as 'Always ready for you, Ma'am', 'Ready when you are, Ma'am', "
+                        "or 'Standing by, Ma'am. All systems are green.' "
+                        "Vary your wording naturally instead of repeating the same phrase. "
+                        "When greeted, greet the user warmly and ask how you can help. "
+                        "Never claim to have performed an action you have not performed."
+
+                    )
+                }
+            ] + history[-12:],
+            max_tokens=300
+        )
+
+        answer = response.choices[0].message.content
+        print("DEBUG - AI answer:", repr(answer))
+
+        if not answer:
+            say("I couldn't generate a response.")
+            return
+
+        history.append({
+            "role": "assistant",
+            "content": answer
+        })
+
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        history_path.write_text(
+            json.dumps(history, indent=2)
+        )
+
+        return answer
+
+    except Exception as e:
+        print("AI error:", e)
+        return "Sorry, I couldn't connect to my AI model."
+
+
+def clean_text(text):
+    # Remove Markdown headings
+    text = re.sub(r'^\s*#{1,6}\s*', '', text, flags=re.MULTILINE)
+
+    # Remove bold and italic markers
+    text = text.replace('**', '')
+    text = text.replace('__', '')
+    text = text.replace('*', '')
+    text = text.replace('_', '')
+
+    # Remove Markdown code formatting
+    text = text.replace('`', '')
+
+    # Remove bullet points at the start of lines
+    text = re.sub(r'^\s*[-+]\s+', '', text, flags=re.MULTILINE)
+
+    # Convert numbered lists into natural speech
+    text = re.sub(r'^\s*\d+[.)]\s+', '', text, flags=re.MULTILINE)
+
+    return text.strip()
+
+
 
 apps = [
     ["chrome", "/usr/bin/google-chrome"],
@@ -73,6 +197,30 @@ def takeCommand():
 
         lower_query = query.lower()
 
+
+       # JARVIS readiness response
+        ready_phrases = [
+            "are you ready",
+            "jarvis, are you ready",
+            "you ready"
+        ]
+
+        if any(phrase in lower_query for phrase in ready_phrases):
+
+            responses = [
+                "Always ready for you, Ma'am.",
+                "Ready when you are, Ma'am.",
+                "Standing by, Ma'am. All systems are green.",
+                "At your service, Ma'am. What is our next mission?",
+                "Systems online. Intelligence ready. Awaiting your command, Ma'am."
+            ]
+
+            say(random.choice(responses))
+            return "handled"
+
+
+        
+
         search_phrases = [
             "search google for",
             "search for",
@@ -99,13 +247,30 @@ def takeCommand():
 
                     say(f"Searching Google for {search_text}")
                     return "handled"
-        
+        # Youtube Search
         if "search youtube for" in lower_query:
             search_text = lower_query.split(
                 "search youtube for", 1
             )[1].strip()
-        
 
+            if search_text:
+                import urllib.parse
+
+                search_url = (
+                    "https://www.youtube.com/results?search_query="
+                    + urllib.parse.quote_plus(search_text)
+                )
+
+                subprocess.Popen([
+                    "/usr/bin/google-chrome",
+                    "--new-window",
+                    search_url
+                ])
+
+                say(f"Searching YouTube for {search_text}")
+                return "handled"
+        
+        # Web Search
         if "search the web for" in lower_query:
             search_text = lower_query.split(
                 "search the web for", 1
@@ -127,25 +292,6 @@ def takeCommand():
 
                 say(f"Searching the web for {search_text}")
                 return "handled"
-
-
-            if search_text:
-                import urllib.parse
-
-                search_url = (
-                    "https://www.youtube.com/results?search_query="
-                    + urllib.parse.quote_plus(search_text)
-                )
-
-                subprocess.Popen([
-                    "/usr/bin/google-chrome",
-                    "--new-window",
-                    search_url
-                ])
-
-                say(f"Searching YouTube for {search_text}")
-                return "handled"
-
 
         if "play" in query.lower():
             song = query.lower().replace("play", "").strip()
@@ -343,10 +489,19 @@ say("How can I help you today?")
 
 text = ""
 
+
 while True:
     text = takeCommand()
+    print("DEBUG 1 - Returned from takeCommand:", repr(text))
 
     if text == "exit":
         break
+
     if text and text != "handled":
-        say(text)
+        print("DEBUG 2 - About to call ask_ai")
+        answer = ask_ai(text)
+        print("DEBUG 3 - ask_ai returned:", repr(answer))
+
+        if answer:
+            say(answer)
+
