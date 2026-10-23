@@ -11,8 +11,9 @@ from pathlib import Path
 import re
 import json
 import random
+import tempfile
 
-MODEL = "liquid/lfm-2.5-2.6b:free"
+MODEL = "nvidia/nemotron-3.5-lightning:free"
 
 key_path = Path.home() / ".config" / "jarvis" / "api_key.txt"
 api_key = key_path.read_text().strip()
@@ -56,7 +57,15 @@ def say(text):
     text = re.sub(r"\s+", " ", text).strip()
 
     if text:
-        subprocess.run(["espeak-ng", text])
+        with tempfile.NamedTemporaryFile(suffix=".wav") as audio_file:
+            subprocess.run([
+                "python3", "-m", "piper",
+                "-m", "en_GB-alan-medium",
+                "-f", audio_file.name,
+                "--", text
+        ],  check=True)
+
+        subprocess.run(["aplay", "-q", audio_file.name], check=True)
 
 
 def ask_ai(question):
@@ -86,15 +95,29 @@ def ask_ai(question):
                         "Vary your wording naturally instead of repeating the same phrase. "
                         "When greeted, greet the user warmly and ask how you can help. "
                         "Never claim to have performed an action you have not performed."
+                        "Sound like a natural, clever conversational assistant. "
+                        "Use light, witty humor rather than generic internet jokes. "
+                        "When asked for a joke, tell exactly one short, genuinely funny joke. "
+                        "Keep ordinary spoken replies to 1-4 sentences unless more detail is requested. "
+                        "Do not add follow-up questions unless they are useful."
 
                     )
                 }
             ] + history[-12:],
-            max_tokens=300
+            max_tokens=1000,
+            extra_body={
+                "reasoning": {
+                    "effort": "minimal",
+                    "exclude": True
+                }
+            }
         )
 
         answer = response.choices[0].message.content
-        print("DEBUG - AI answer:", repr(answer))
+        
+        choice = response.choices[0]
+        message = choice.message
+        answer = message.content
 
         if not answer:
             say("I couldn't generate a response.")
@@ -483,25 +506,24 @@ def takeCommand():
         print("Google service error:", e)
         #return ""
 # Main program
-say("Hello I am Jarvis A.I")
-say("All systems are online")
-say("How can I help you today?")
-
 text = ""
-
 
 while True:
     text = takeCommand()
-    print("DEBUG 1 - Returned from takeCommand:", repr(text))
 
-    if text == "exit":
+    if text and text.strip().lower() == "exit":
         break
 
+    # Wake word: JARVIS
+    if text and text.strip().lower() in ["Wake up Jarvis", "hey jarvis"]:
+        say("Yes, I'm listening, Ma'am.")
+        text = takeCommand()
+
+        if text and text.strip().lower() == "exit":
+            break
+
     if text and text != "handled":
-        print("DEBUG 2 - About to call ask_ai")
         answer = ask_ai(text)
-        print("DEBUG 3 - ask_ai returned:", repr(answer))
 
         if answer:
             say(answer)
-
