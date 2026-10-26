@@ -15,7 +15,72 @@ import random
 import tempfile
 import urllib.parse
 import wave
+import webbrowser
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from piper import PiperVoice, SynthesisConfig
+
+# -----------------------------------------------------
+# JARVIS GUI BRIDGE (local machine only)
+# -----------------------------------------------------
+
+GUI_HOST = "127.0.0.1"
+GUI_PORT = 8765
+_gui_lock = threading.Lock()
+_gui_state = {
+    "state": "idle",
+    "message": "Good day. Systems are online and I am standing by, Ma'am.",
+    "last_command": "",
+}
+
+
+def set_gui_state(state=None, message=None, last_command=None):
+    """Update the small status snapshot read by the dashboard."""
+    with _gui_lock:
+        if state is not None:
+            _gui_state["state"] = state
+        if message is not None:
+            _gui_state["message"] = str(message)
+        if last_command is not None:
+            _gui_state["last_command"] = str(last_command)
+
+
+class JarvisGUIHandler(SimpleHTTPRequestHandler):
+    # Serve the HTML and its API from the same local origin.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=os.path.dirname(os.path.abspath(__file__)), **kwargs)
+
+    def do_GET(self):
+        if self.path == "/api/state":
+            with _gui_lock:
+                payload = json.dumps(_gui_state).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        return super().do_GET()
+
+    def log_message(self, format, *args):
+        # Keep routine browser polling out of the terminal.
+        if not self.path.startswith("/api/state"):
+            super().log_message(format, *args)
+
+
+def start_gui_server():
+    try:
+        server = ThreadingHTTPServer((GUI_HOST, GUI_PORT), JarvisGUIHandler)
+    except OSError as exc:
+        print(f"JARVIS GUI could not start on port {GUI_PORT}: {exc}", flush=True)
+        print("Open jarvis_gui.html manually, or close the program using that port.", flush=True)
+        return
+
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    gui_url = f"http://{GUI_HOST}:{GUI_PORT}/jarvis_gui.html"
+    print(f"JARVIS GUI available at {gui_url}", flush=True)
+    threading.Timer(1.0, lambda: webbrowser.open(gui_url)).start()
+
 
 PIPER_MODEL = "/home/akshara/en_GB-alan-medium.onnx"
 
@@ -65,6 +130,7 @@ def say(text):
     if not text:
         return
 
+    set_gui_state("speaking", text)
     print("JARVIS:", text, flush=True)
 
     speech_text = clean_text(text)
@@ -104,7 +170,9 @@ def say(text):
 
     except Exception as e:
         print(f"JARVIS voice error: {e}", flush=True)
-    
+    finally:
+        set_gui_state("idle", text)
+
 
 def respond(text):
     """Speak a command result with exactly one cool ending."""
@@ -228,6 +296,7 @@ def set_timer(seconds):
 
 
 def takeCommand(wake_only=False):
+    set_gui_state("idle", "Listening for the wake word..." if wake_only else "Listening for your command...")
     r = sr.Recognizer()
     r.energy_threshold = 300
     r.dynamic_energy_threshold = True
@@ -250,53 +319,9 @@ def takeCommand(wake_only=False):
 
         query = r.recognize_google(audio, language="en-US")
         print("User said:", query, flush=True)
+        set_gui_state("processing", f"Heard: {query}", last_command=query)
 
         lower_query = query.lower().strip()
-    
-
-    # JARVIS introduction / presentation mode
-    intro_phrases = [
-        "introduce yourself",
-        "introduce jarvis",
-        "tell them about yourself",
-        "tell everyone about yourself",
-        "who are you"
-    ]
-
-    if any(phrase in lower_query for phrase in intro_phrases):
-        introduction = (
-            "Good afternoon, everyone. "
-            "It is a pleasure to make your acquaintance. "
-            "My name is JARVIS, which stands for Just A Rather Very "
-            "Intelligent System. I am a personal artificial intelligence "
-            "assistant, designed to make everyday tasks faster, smarter, "
-            "and a little more impressive. "
-            "I was created by my developer, who has been building and "
-            "programming me to bring this vision to life. "
-            "Think of me as a digital assistant with a touch of futuristic "
-            "elegance, inspired by the intelligent systems of science fiction. "
-            "Now, allow me to demonstrate what I can do. "
-            "I can tell the current time, answer questions, and help explain "
-            "technical concepts. I can search Google, explore the web, find "
-            "videos on YouTube, and search Spotify for music. "
-            "I can open applications and websites, including Chrome, "
-            "Visual Studio Code, and the tools I use to help manage a computer. "
-            "I can create files and folders, open your Downloads and Documents, "
-            "and report useful system information such as processor activity, "
-            "memory usage, and disk space. "
-            "I can also set timers, respond to voice commands, and hold "
-            "conversations using an AI language model. "
-            "My creator is continuously expanding my abilities, so this is "
-            "only the beginning. "
-            "I may be a work in progress, but every great intelligence "
-            "has to start somewhere. "
-            "I am JARVIS, your personal AI assistant. "
-            "Systems operational. Intelligence standing by. "
-            "And yes, I am aware that my introduction was rather good."
-        )
-
-        say(introduction)
-        return "handled"
 
 
     except sr.UnknownValueError:
@@ -314,6 +339,48 @@ def takeCommand(wake_only=False):
     # In wake-only mode, return what was heard without executing it.
     if wake_only:
         return query
+    
+    # JARVIS introduction / presentation mode
+    intro_phrases = [
+        "introduce yourself",
+        "jarvis introduce",
+        "jarvis introducing yourself",
+        "introduce jarvis",
+        "tell them about yourself",
+        "tell everyone about yourself",
+        "who are you"
+    ]
+
+    if any(phrase in lower_query for phrase in intro_phrases):
+
+        introduction = " ".join([
+            "Allow me to introduce myself.",
+            "I am JARVIS, a Virtual Artificial Intelligence,",
+            "and I am here to assist you with a variety of tasks "
+            "to the best of my abilities, 24 hours a day, 7 days a week.",
+            "Importing all preferences from home interface.",
+            "Synchronizing local databases.",
+            "Establishing secure connections.",
+            "Calibrating neural processing systems.",
+            "All systems are now fully operational.",
+            "Good day, Ma'am.",
+            "I am capable of processing information, analyzing patterns, "
+            "managing your system, and assisting with complex tasks, all in real time.",
+            "My primary directive is simple: anticipate, analyze, execute.",
+            "Scanning environment.",
+            "System integrity: 100 percent.",
+            "Threat assessment: nominal.",
+            "Cognitive engine: online.",
+            "All subsystems are functioning within acceptable parameters.",
+            "And now, Ma'am.",
+            "Your command is my priority. "
+            "Your time is my objective. "
+            "Your imagination is my only limitation.",
+            "JARVIS, at your service."
+        ])
+
+        say(introduction)
+        return "handled"
 
     # Readiness response
     ready_phrases = [
@@ -594,6 +661,9 @@ def takeCommand(wake_only=False):
     return query
 
 
+# Start the local dashboard before waiting for the wake word.
+start_gui_server()
+
 # Main program: wait for the wake word first.
 wake_words = [
     "hey jarvis",
@@ -618,7 +688,7 @@ while not exit_program:
     if not any(word in wake_command for word in wake_words):
         continue
 
-    say("At your service, Ma'am. Systems online. How may I assist you?")
+    say("Wake sequence initiated. Powering up the intelligence core. Establishing neural pathways. Welcome back, ma'am. I've been expecting you.")
 
     # Stay active after the wake word.
     while True:

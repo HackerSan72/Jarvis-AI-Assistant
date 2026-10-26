@@ -1195,6 +1195,35 @@ function setState(state, text) {
     }
 }
 
+/* Live connection to the Python JARVIS process. */
+let lastBridgeSnapshot = "";
+
+async function syncWithPython() {
+    try {
+        const response = await fetch("/api/state", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const snapshot = JSON.stringify(data);
+        if (snapshot === lastBridgeSnapshot) return;
+        lastBridgeSnapshot = snapshot;
+
+        const allowedStates = ["idle", "processing", "speaking"];
+        const state = allowedStates.includes(data.state) ? data.state : "idle";
+        setState(state, data.message || "");
+
+        if (data.last_command) {
+            document.getElementById("activity3").textContent =
+                `Last command: ${data.last_command}`;
+        }
+    } catch (error) {
+        // If Python is not running, keep the dashboard animation available.
+    }
+}
+
+syncWithPython();
+setInterval(syncWithPython, 400);
+
 /* Demo buttons */
 
 document.querySelectorAll(".demo-controls button").forEach(btn => {
@@ -1644,9 +1673,12 @@ function drawCore(time) {
 
     ctx.restore();
 
-     /* =================================================
-    LAYER 3 — LONGER, BRIGHTER RADIAL ENERGY BEAMS
-    ================================================= */
+    /* =================================================
+       LAYER 3 — MANY STRAIGHT RADIAL ENERGY BEAMS
+
+       More rays now extend beyond the wireframe into
+       the orbital particle field.
+       ================================================= */
 
     const beamCount = 40;
 
@@ -1656,31 +1688,24 @@ function drawCore(time) {
             Math.sin(time * 0.00005 + i) * 0.025;
 
         const inner = unit * 0.018;
-
-        // Extend the beams farther beyond the webbed sphere.
         const outer = unit * (
             0.405 + ((i * 11) % 9) * 0.010
         ) * pulse;
 
         const x1 = cx + Math.cos(angle) * inner;
         const y1 = cy + Math.sin(angle) * inner;
+
         const x2 = cx + Math.cos(angle) * outer;
         const y2 = cy + Math.sin(angle) * outer;
 
         const bright = i % 4 === 0;
 
-        const beam = ctx.createLinearGradient(
-            x1, y1, x2, y2
-        );
-
+        const beam = ctx.createLinearGradient(x1, y1, x2, y2);
         beam.addColorStop(0, "rgba(255,255,225,1)");
         beam.addColorStop(0.22, "rgba(255,239,112,1)");
-        beam.addColorStop(
-            0.66,
-            bright
-                ? "rgba(255,151,16,0.98)"
-                : "rgba(255,159,24,0.88)"
-        );
+        beam.addColorStop(0.66, bright
+            ? "rgba(255,151,16,0.98)"
+            : "rgba(255,159,24,0.88)");
         beam.addColorStop(1, "rgba(255,101,0,0.20)");
 
         ctx.beginPath();
@@ -1698,7 +1723,7 @@ function drawCore(time) {
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Animated energy points travel along selected beams.
+        // Travelling energy point along selected rays.
         if (bright) {
             const travel = (
                 time * 0.00028 + i * 0.19
@@ -1793,13 +1818,14 @@ function drawCore(time) {
     ctx.shadowBlur = 0;
 
     /* =================================================
-       LAYER 5 — OUTER BROKEN ORBITAL CURVES
+       LAYER 5 — OUTERMOST IRREGULAR BROKEN CURVES
 
-       These curves sit farther from the webbed sphere.
-       They remain irregular and disconnected.
+       These are deliberately not complete circles.
+       They sit beyond the main particle cloud and have
+       varied lengths, angles, offsets and curvatures.
        ================================================= */
 
-    // Long, faint orbital fragments.
+    // Long, faint orbital fragments at the outer edge.
     for (let i = 0; i < 17; i++) {
         const rotation =
             i * 2.399 +
@@ -1819,11 +1845,9 @@ function drawCore(time) {
         ctx.ellipse(
             cx + Math.sin(i * 2.7) * unit * 0.014,
             cy + Math.cos(i * 1.9) * unit * 0.014,
-            rx,
-            ry,
+            rx, ry,
             rotation * 0.20,
-            start,
-            start + length
+            start, start + length
         );
 
         ctx.strokeStyle = i % 4 === 0
@@ -1834,7 +1858,7 @@ function drawCore(time) {
         ctx.stroke();
     }
 
-    // Short, brighter, disconnected curved traces.
+    // Short, bright, disconnected curved traces.
     for (let i = 0; i < 27; i++) {
         const rotation =
             i * 2.399 +
@@ -1849,13 +1873,11 @@ function drawCore(time) {
 
         ctx.beginPath();
         ctx.ellipse(
-            cx,
-            cy,
+            cx, cy,
             radius * (0.91 + (i % 3) * 0.04),
             radius * (0.77 + (i % 4) * 0.045),
             rotation * 0.17,
-            start,
-            start + length
+            start, start + length
         );
 
         ctx.strokeStyle = i % 5 === 0
@@ -1866,7 +1888,7 @@ function drawCore(time) {
         ctx.stroke();
     }
 
-    // Outer sparks, without creating a complete circular border.
+    // A few outer sparks, not a continuous border.
     for (let i = 0; i < 16; i++) {
         const angle =
             time * 0.00010 * (i % 2 === 0 ? 1 : -1) +
@@ -1880,13 +1902,7 @@ function drawCore(time) {
         const y = cy + Math.sin(angle) * radius * 0.83;
 
         ctx.beginPath();
-        ctx.arc(
-            x,
-            y,
-            i % 4 === 0 ? 1.7 : 0.85,
-            0,
-            TAU
-        );
+        ctx.arc(x, y, i % 4 === 0 ? 1.7 : 0.85, 0, TAU);
 
         ctx.fillStyle = "#ffd16a";
         ctx.shadowBlur = 10;
