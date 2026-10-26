@@ -1,0 +1,1948 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — Personal AI Assistant</title>
+
+<style>
+:root {
+    --gold: #ffbd28;
+    --amber: #ff8a00;
+    --orange: #ff5b16;
+    --line: rgba(255, 173, 30, .68);
+    --panel: rgba(12, 7, 2, .72);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #030302;
+    color: #f8e7bb;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    background: radial-gradient(
+        ellipse at 50% 47%,
+        #211004 0%,
+        #090503 42%,
+        #020202 78%
+    );
+}
+
+#particles {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: .8;
+}
+
+.dashboard {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    min-height: 620px;
+    padding: 16px 22px 20px;
+    display: grid;
+    grid-template-rows: 60px 1fr;
+    gap: 14px;
+}
+
+/* HEADER */
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border-bottom: 1px solid rgba(255,163,21,.35);
+}
+
+.brand-mark {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    position: relative;
+    box-shadow:
+        0 0 18px #ff9e182b,
+        inset 0 0 14px #ff9e182b;
+}
+
+.brand-mark:before,
+.brand-mark:after {
+    content: "";
+    position: absolute;
+    background: var(--gold);
+}
+
+.brand-mark:before {
+    width: 62px;
+    height: 1px;
+}
+
+.brand-mark:after {
+    width: 1px;
+    height: 62px;
+}
+
+.brand-core {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff4a0;
+    box-shadow:
+        0 0 10px 4px #ff9e17,
+        0 0 24px 9px #ff8a00;
+}
+
+.brand-title {
+    font-size: 25px;
+    letter-spacing: 9px;
+    color: #ffd977;
+}
+
+.brand-sub {
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-top: 3px;
+    color: #d8c9a7;
+}
+
+.header-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--amber), transparent);
+}
+
+.online {
+    font-size: 12px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.online i {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 9px var(--amber);
+}
+
+.mode-label {
+    margin-left: 24px;
+    border-left: 1px solid var(--line);
+    padding: 8px 10px 8px 22px;
+    letter-spacing: 2px;
+}
+
+/* LAYOUT AND PANELS */
+
+.layout {
+    min-height: 0;
+    display: grid;
+    grid-template-columns:
+        minmax(235px, 1fr)
+        minmax(400px, 1.95fr)
+        minmax(250px, 1fr);
+    gap: 22px;
+}
+
+.side {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panel {
+    position: relative;
+    background: linear-gradient(
+        135deg,
+        rgba(28,16,4,.68),
+        var(--panel)
+    );
+    border: 1px solid var(--line);
+    padding: 15px 17px;
+    clip-path: polygon(
+        0 15px,
+        15px 0,
+        calc(100% - 22px) 0,
+        100% 22px,
+        100% calc(100% - 15px),
+        calc(100% - 15px) 100%,
+        0 100%
+    );
+    box-shadow:
+        inset 0 0 20px rgba(255,138,0,.045),
+        0 0 14px rgba(255,130,0,.05);
+}
+
+.panel:before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 8px;
+    width: 42px;
+    height: 7px;
+    border-top: 2px solid var(--orange);
+    transform: skew(40deg);
+}
+
+.panel h2 {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 12px;
+    color: #ffe6ad;
+    letter-spacing: .4px;
+}
+
+.system-row,
+.app-row,
+.activity-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid rgba(255,165,25,.19);
+    padding: 11px 2px;
+    min-height: 42px;
+}
+
+.system-row:first-of-type {
+    border-top: 0;
+}
+
+.ico {
+    color: var(--gold);
+    font-size: 23px;
+    width: 28px;
+    text-align: center;
+    text-shadow: 0 0 10px #ff8a00;
+}
+
+.row-label {
+    flex: 1;
+    font-size: 13px;
+    color: #e9dfc9;
+}
+
+.online-tag {
+    color: #ffd52d;
+    font-size: 10px;
+}
+
+.app-row {
+    cursor: pointer;
+    transition: background .2s, padding .2s;
+}
+
+.app-row:hover {
+    background: rgba(255,165,25,.09);
+    padding-left: 7px;
+}
+
+.chevron {
+    color: var(--gold);
+    font-size: 24px;
+}
+
+/* MICROPHONE AND WAVEFORM */
+
+.mic-panel {
+    min-height: 125px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+}
+
+.mic-panel .mic {
+    font-size: 33px;
+    filter: drop-shadow(0 0 7px var(--amber));
+}
+
+.wave {
+    height: 42px;
+    width: 84%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+}
+
+.wave span {
+    display: block;
+    width: 3px;
+    height: 5px;
+    border-radius: 2px;
+    background: linear-gradient(var(--gold), var(--orange));
+    box-shadow: 0 0 5px #ff8a00;
+    animation: wave 1s ease-in-out infinite alternate;
+    animation-play-state: paused;
+}
+
+body.speaking .wave span,
+body.listening .wave span {
+    animation-play-state: running;
+}
+
+@keyframes wave {
+    from {
+        transform: scaleY(.35);
+        opacity: .55;
+    }
+    to {
+        transform: scaleY(var(--h, 1.8));
+        opacity: 1;
+    }
+}
+
+.status-text {
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: .5px;
+}
+
+/* CENTRAL HOLOGRAM */
+
+.center {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) 150px;
+    gap: 12px;
+    min-height: 0;
+}
+
+.orb-stage {
+    position: relative;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+.orb-stage:before {
+    content: "";
+    position: absolute;
+    inset: 6%;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(255,125,0,.08),
+        transparent 66%
+    );
+    filter: blur(12px);
+}
+
+
+/* Entire holographic structure */
+.orb {
+    width: min(48vw, 68vh, 570px);
+    aspect-ratio: 1;
+    position: relative;
+    filter: drop-shadow(0 0 22px rgba(255, 118, 0, .2));
+    transform: scale(1);
+    transform-origin: center;
+    transition: transform .35s ease, filter .35s ease;
+    will-change: transform;
+}
+
+/* Calm animation while listening */
+body.listening .orb {
+    transform: scale(1.025);
+}
+
+/* Slight expansion while processing a command */
+body.processing .orb {
+    transform: scale(1.055);
+    filter: drop-shadow(0 0 32px rgba(255, 118, 0, .35));
+}
+
+/* Bigger, brighter core while speaking */
+body.speaking .orb {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 38px rgba(255, 118, 0, .4));
+}
+
+.core {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    z-index: 4;
+
+    background: radial-gradient(
+        circle at 38% 35%,
+        #ffffff 0%,
+        #fffde0 18%,
+        #fff37a 38%,
+        #ffc928 57%,
+        #ff9200 76%,
+        rgba(255, 95, 0, .15) 100%
+    );
+
+    box-shadow:
+        0 0 8px 3px #fff8bd,
+        0 0 19px 9px rgba(255, 226, 79, .95),
+        0 0 42px 18px rgba(255, 153, 0, .7),
+        0 0 85px 32px rgba(255, 75, 0, .28);
+
+    animation: corePulse 2.4s ease-in-out infinite;
+    will-change: scale, opacity;
+}
+
+body.processing .core {
+    animation-duration: 1s;
+}
+
+body.speaking .core {
+    animation-duration: .42s;
+
+    box-shadow:
+        0 0 12px 5px #ffffff,
+        0 0 27px 13px #fff064,
+        0 0 60px 25px rgba(255, 128, 0, .95),
+        0 0 105px 40px rgba(255, 65, 0, .48);
+}
+
+@keyframes corePulse {
+    0%, 100% {
+        scale: .88;
+        opacity: .88;
+    }
+
+    50% {
+        scale: 1.13;
+        opacity: 1;
+    }
+}
+
+
+/* ORBITAL RINGS */
+
+.ring {
+    position: absolute;
+    border: 1px solid rgba(255,151,24,.65);
+    border-radius: 50%;
+    inset: var(--inset);
+    box-shadow:
+        0 0 7px rgba(255,135,0,.12),
+        inset 0 0 8px rgba(255,135,0,.06);
+}
+
+.ring.dashed {
+    border-style: dashed;
+    border-color: rgba(255,170,38,.65);
+}
+
+.ring.thick {
+    border-width: 3px;
+    border-color: rgba(255,138,15,.75);
+    border-left-color: transparent;
+    border-bottom-color: rgba(255,83,16,.65);
+}
+
+.ring.r1 {
+    --inset: 3%;
+    animation: spin 30s linear infinite;
+}
+
+.ring.r2 {
+    --inset: 8%;
+    animation: spin 19s linear infinite reverse;
+    border-style: dashed;
+}
+
+.ring.r3 {
+    --inset: 14%;
+    animation: spin 24s linear infinite;
+}
+
+.ring.r4 {
+    --inset: 19%;
+    transform: rotate(58deg) scaleY(.78);
+    border-width: 2px;
+}
+
+.ring.r5 {
+    --inset: 24%;
+    transform: rotate(-37deg) scaleY(.72);
+    border-color: rgba(255,191,55,.8);
+}
+
+.ring.r6 {
+    --inset: 29%;
+    animation: spin 13s linear infinite reverse;
+}
+
+.ring.r7 {
+    --inset: 35%;
+    transform: rotate(60deg) scaleY(.82);
+    border-style: dashed;
+}
+
+.ring.r8 {
+    --inset: 39%;
+    animation: spin 17s linear infinite;
+    border-width: 2px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* CORE PARTICLE CANVAS */
+
+#coreCanvas {
+    position: absolute;
+    inset: 8%;
+    width: 84%;
+    height: 84%;
+    z-index: 2;
+    pointer-events: none;
+    overflow: visible;
+}
+
+/* CENTRAL GOLDEN-WHITE ENERGY CORE */
+
+.core {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    z-index: 4;
+
+    background: radial-gradient(
+        circle at 40% 35%,
+        #fffde0 0%,
+        #fff8a0 22%,
+        #ffe84b 42%,
+        #ffb800 65%,
+        rgba(255,110,0,.45) 82%,
+        transparent 100%
+    );
+
+    box-shadow:
+        0 0 10px 4px #fff08a,
+        0 0 28px 13px rgba(255,188,20,.95),
+        0 0 64px 25px rgba(255,105,0,.48),
+        0 0 110px 38px rgba(255,67,0,.18);
+
+    animation: corePulse 2.2s ease-in-out infinite;
+}
+
+body.speaking .core {
+    animation-duration: .38s;
+    box-shadow:
+        0 0 18px 8px #fff064,
+        0 0 42px 19px rgba(255,128,0,.95),
+        0 0 100px 36px rgba(255,86,0,.4);
+}
+
+@keyframes corePulse {
+    0%, 100% {
+        scale: .9;
+        opacity: .9;
+    }
+
+    50% {
+        scale: 1.07;
+        opacity: 1;
+    }
+}
+
+/* RADIAL ENERGY BEAMS */
+
+.ray {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: 1px;
+    width: 43%;
+    z-index: 3;
+    transform-origin: left center;
+    background: linear-gradient(
+        90deg,
+        #fff4a0,
+        #ff8a00 55%,
+        transparent
+    );
+    box-shadow: 0 0 7px var(--orange);
+}
+
+.ray:after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff5a0;
+    box-shadow: 0 0 10px 3px #ff6a00;
+}
+
+.ray.a {
+    transform: rotate(18deg);
+}
+
+.ray.b {
+    transform: rotate(139deg);
+    width: 35%;
+}
+
+.ray.c {
+    transform: rotate(263deg);
+    width: 48%;
+}
+
+.ray.d {
+    transform: rotate(322deg);
+    width: 39%;
+}
+
+.orb-caption {
+    position: absolute;
+    top: 7%;
+    left: 7%;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #b9904b;
+}
+
+.orb-state {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #ffbd48;
+    white-space: nowrap;
+    text-shadow: 0 0 9px #ff8500;
+}
+
+/* JARVIS MESSAGE */
+
+.message {
+    padding: 17px 24px;
+}
+
+.message-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: 2px;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+.message-head span {
+    color: var(--gold);
+    font-size: 24px;
+}
+
+.message-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #fff0d2;
+}
+
+/* CLOCK */
+
+.clock-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.clock {
+    font-size: 40px;
+    color: #ffe2a0;
+    line-height: 1;
+}
+
+.date {
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.weather {
+    text-align: right;
+    font-size: 13px;
+}
+
+.weather .temp {
+    font-size: 22px;
+    color: #ffe5a7;
+}
+
+/* SYSTEM USAGE */
+
+.usage-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 84px;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid rgba(255,165,25,.18);
+}
+
+.gauge {
+    width: 49px;
+    height: 49px;
+    border-radius: 50%;
+    background: conic-gradient(var(--gold) 0 35%, #55300a 35% 100%);
+    display: grid;
+    place-items: center;
+    position: relative;
+}
+
+.gauge:before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: #110900;
+}
+
+.gauge span {
+    position: relative;
+    font-size: 10px;
+}
+
+.usage-label {
+    font-size: 12px;
+    color: #e5d6b7;
+}
+
+.usage-val {
+    font-size: 20px;
+    margin-top: 2px;
+}
+
+.spark {
+    width: 100%;
+    height: 28px;
+    border-bottom: 1px solid #7b470c;
+    background: linear-gradient(180deg, transparent, #ff9b1819);
+}
+
+/* RECENT ACTIVITY */
+
+.activity-row {
+    font-size: 12px;
+}
+
+.activity-row .ico {
+    font-size: 20px;
+}
+
+/* QUOTE */
+
+.quote {
+    margin-top: auto;
+    min-height: 95px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ffe4a4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.quote small {
+    align-self: flex-end;
+    color: var(--gold);
+    margin-top: 8px;
+}
+
+/* DEMO CONTROLS */
+
+.demo-controls {
+    position: fixed;
+    z-index: 5;
+    right: 12px;
+    bottom: 10px;
+    display: flex;
+    gap: 6px;
+    opacity: .25;
+    transition: opacity .2s;
+}
+
+.demo-controls:hover {
+    opacity: 1;
+}
+
+.demo-controls button {
+    background: #171007;
+    color: #ffcf63;
+    border: 1px solid #a96713;
+    padding: 6px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+/* RESPONSIVE LAYOUT */
+
+@media (max-width: 1000px) {
+    .dashboard {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .layout {
+        grid-template-columns:
+            minmax(180px, .8fr)
+            minmax(300px, 1.5fr)
+            minmax(190px, .8fr);
+        gap: 10px;
+    }
+
+    .panel {
+        padding: 10px;
+    }
+
+    .orb {
+        width: min(50vw, 56vh);
+    }
+
+    .clock {
+        font-size: 30px;
+    }
+
+    .usage-row {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .spark {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    html, body {
+        overflow: auto;
+    }
+
+    .dashboard {
+        height: auto;
+        min-height: 100vh;
+        grid-template-rows: auto auto;
+    }
+
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .center {
+        order: -1;
+        grid-template-rows: minmax(340px, 65vh) 130px;
+    }
+
+    .orb {
+        width: min(80vw, 60vh);
+    }
+
+    .side {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mic-panel {
+        min-height: 130px;
+    }
+}
+</style>
+</head>
+
+<body class="idle">
+
+<canvas id="particles"></canvas>
+
+<div class="dashboard">
+
+    <header class="topbar">
+        <div class="brand-mark">
+            <div class="brand-core"></div>
+        </div>
+
+        <div>
+            <div class="brand-title">JARVIS</div>
+            <div class="brand-sub">PERSONAL AI ASSISTANT</div>
+        </div>
+
+        <div class="header-line"></div>
+
+        <div class="online">
+            SYSTEMS ONLINE<i></i>
+        </div>
+
+        <div class="mode-label">SKYLINE</div>
+    </header>
+
+    <main class="layout">
+
+        <!-- LEFT PANEL -->
+
+        <section class="side">
+
+            <div class="panel">
+                <h2>SYSTEMS</h2>
+
+                <div class="system-row">
+                    <div class="ico">♩</div>
+                    <div class="row-label">Voice Recognition</div>
+                    <div class="online-tag">ONLINE</div>
+                </div>
+
+                <div class="system-row">
+                    <div class="ico">◖))</div>
+                    <div class="row-label">Text To Speech</div>
+                    <div class="online-tag">ONLINE</div>
+                </div>
+
+                <div class="system-row">
+                    <div class="ico">◎</div>
+                    <div class="row-label">Internet Connection</div>
+                    <div class="online-tag">ONLINE</div>
+                </div>
+
+                <div class="system-row">
+                    <div class="ico">⚙</div>
+                    <div class="row-label">System Tools</div>
+                    <div class="online-tag">ONLINE</div>
+                </div>
+
+                <div class="system-row">
+                    <div class="ico">▦</div>
+                    <div class="row-label">Application Control</div>
+                    <div class="online-tag">ONLINE</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>QUICK APPS</h2>
+
+                <div class="app-row" data-app="Chrome">
+                    <div class="ico">◉</div>
+                    <div class="row-label">Chrome</div>
+                    <div class="chevron">›</div>
+                </div>
+
+                <div class="app-row" data-app="VS Code">
+                    <div class="ico">&lt;/&gt;</div>
+                    <div class="row-label">VS Code</div>
+                    <div class="chevron">›</div>
+                </div>
+
+                <div class="app-row" data-app="Terminal">
+                    <div class="ico">▱</div>
+                    <div class="row-label">Terminal</div>
+                    <div class="chevron">›</div>
+                </div>
+
+                <div class="app-row" data-app="Files">
+                    <div class="ico">▱</div>
+                    <div class="row-label">Files</div>
+                    <div class="chevron">›</div>
+                </div>
+
+                <div class="app-row" data-app="Spotify">
+                    <div class="ico">♫</div>
+                    <div class="row-label">Spotify</div>
+                    <div class="chevron">›</div>
+                </div>
+            </div>
+
+            <div class="panel mic-panel">
+                <div class="mic">♩</div>
+                <div class="wave" id="wave"></div>
+                <div class="status-text" id="statusText">Listening...</div>
+            </div>
+
+        </section>
+
+        <!-- CENTRAL HOLOGRAM -->
+
+        <section class="center">
+
+            <div class="orb-stage">
+
+                <div class="orb" id="orb">
+
+                    <div class="orb-caption">
+                        ANALYZING / NEURAL CORE
+                    </div>
+                    <!-- Canvas draws the animated webbed core, beams, particles and broken outer arcs -->
+                    <canvas id="coreCanvas"></canvas>
+                    <div class="core"></div>
+
+                    <div class="orb-state" id="orbState">
+                        NEURAL CORE · STANDBY
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="panel message">
+                <div class="message-head">
+                    <span>◯</span> JARVIS
+                </div>
+
+                <div class="message-body" id="message">
+                    Good day. Systems are online and I am standing by, Ma'am.
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT PANEL -->
+
+        <section class="side">
+
+            <div class="panel clock-panel">
+                <div>
+                    <div class="clock" id="clock">--:--</div>
+                    <div class="date" id="date">Loading date...</div>
+                </div>
+
+                <div class="weather">
+                    <div class="temp">◌ 22°C</div>
+                    <small>Weather demo</small><br>
+                    <small>Local display</small>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>SYSTEM USAGE</h2>
+
+                <div class="usage-row">
+                    <div class="gauge"><span>◉</span></div>
+                    <div>
+                        <div class="usage-label">CPU</div>
+                        <div class="usage-val" id="cpu">--%</div>
+                    </div>
+                    <canvas class="spark" id="spark1"></canvas>
+                </div>
+
+                <div class="usage-row">
+                    <div class="gauge"><span>◉</span></div>
+                    <div>
+                        <div class="usage-label">RAM</div>
+                        <div class="usage-val" id="ram">--%</div>
+                    </div>
+                    <canvas class="spark" id="spark2"></canvas>
+                </div>
+
+                <div class="usage-row">
+                    <div class="gauge"><span>◉</span></div>
+                    <div>
+                        <div class="usage-label">DISK</div>
+                        <div class="usage-val" id="disk">--%</div>
+                    </div>
+                    <canvas class="spark" id="spark3"></canvas>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>RECENT ACTIVITY</h2>
+
+                <div class="activity-row">
+                    <div class="ico">⌕</div>
+                    <div class="row-label" id="activity1">
+                        Interface initialized
+                    </div>
+                </div>
+
+                <div class="activity-row">
+                    <div class="ico">▶</div>
+                    <div class="row-label" id="activity2">
+                        Neural core online
+                    </div>
+                </div>
+
+                <div class="activity-row">
+                    <div class="ico">&lt;/&gt;</div>
+                    <div class="row-label" id="activity3">
+                        Awaiting command
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel quote">
+                “The best way to predict<br>
+                the future is to create it.”
+                <small>— JARVIS</small>
+            </div>
+
+        </section>
+
+    </main>
+</div>
+
+<!-- Temporary controls for testing the animations -->
+
+<div class="demo-controls">
+    <button data-state="idle">Listening</button>
+    <button data-state="processing">Execute demo</button>
+    <button data-state="speaking">Speaking</button>
+</div>
+
+<script>
+const body = document.body;
+const statusText = document.getElementById("statusText");
+const orbState = document.getElementById("orbState");
+const message = document.getElementById("message");
+const wave = document.getElementById("wave");
+
+const stateLabels = {
+    idle: [
+        "Listening...",
+        "NEURAL CORE · STANDBY"
+    ],
+    processing: [
+        "Executing command...",
+        "ANALYZING · EXECUTING"
+    ],
+    speaking: [
+        "JARVIS is speaking...",
+        "VOICE OUTPUT · ACTIVE"
+    ]
+};
+
+/* Create the waveform bars */
+
+for (let i = 0; i < 39; i++) {
+    const bar = document.createElement("span");
+
+    bar.style.setProperty(
+        "--h",
+        (0.5 + Math.random() * 4).toFixed(2)
+    );
+
+    bar.style.animationDelay = `${Math.random() * -0.9}s`;
+    wave.appendChild(bar);
+}
+
+/* Change interface state */
+
+function setState(state, text) {
+    body.classList.remove(
+        "idle",
+        "processing",
+        "speaking",
+        "listening"
+    );
+
+    body.classList.add(
+        state === "idle" ? "listening" : state
+    );
+
+    const labels = stateLabels[state] || stateLabels.idle;
+
+    statusText.textContent = labels[0];
+    orbState.textContent = labels[1];
+
+    if (text) {
+        message.textContent = text;
+    }
+
+    if (state === "processing") {
+        document.getElementById("activity1").textContent =
+            "Command received";
+
+        document.getElementById("activity2").textContent =
+            "Executing task";
+    } else if (state === "speaking") {
+        document.getElementById("activity1").textContent =
+            "Task completed";
+
+        document.getElementById("activity2").textContent =
+            "Voice response active";
+    } else {
+        document.getElementById("activity2").textContent =
+            "Neural core online";
+
+        document.getElementById("activity3").textContent =
+            "Awaiting command";
+    }
+}
+
+/* Demo buttons */
+
+document.querySelectorAll(".demo-controls button").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const state = btn.dataset.state;
+
+        const samples = {
+            idle:
+                "Good day. Systems are online and I am standing by, Ma'am.",
+
+            processing:
+                "Opening YouTube. Please stand by while I execute your command.",
+
+            speaking:
+                "Task complete, Ma'am. YouTube is ready. What shall we do next?"
+        };
+
+        setState(state, samples[state]);
+    });
+});
+
+/* Quick-app demo clicks */
+
+document.querySelectorAll(".app-row").forEach(row => {
+    row.addEventListener("click", () => {
+        setState(
+            "processing",
+            `Preparing to open ${row.dataset.app}...`
+        );
+
+        document.getElementById("activity3").textContent =
+            `Requested: ${row.dataset.app}`;
+    });
+});
+
+/* Live clock */
+
+function updateClock() {
+    const now = new Date();
+
+    document.getElementById("clock").textContent =
+        now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+        });
+
+    document.getElementById("date").textContent =
+        now.toLocaleDateString([], {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+/* Background particles: always moving */
+
+const canvas = document.getElementById("particles");
+const ctx = canvas.getContext("2d");
+
+let particles = [];
+
+function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+
+    canvas.style.width = innerWidth + "px";
+    canvas.style.height = innerHeight + "px";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const count = Math.min(
+        240,
+        Math.floor(innerWidth * innerHeight / 6500)
+    );
+
+    particles = Array.from({ length: count }, () => ({
+        x: Math.random() * innerWidth,
+        y: Math.random() * innerHeight,
+        r: Math.random() * 1.6 + 0.3,
+        vx: (Math.random() - 0.5) * 0.26,
+        vy: (Math.random() - 0.5) * 0.3,
+        a: Math.random() * 0.65 + 0.15,
+        phase: Math.random() * Math.PI * 2
+    }));
+}
+
+function drawParticles() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+    for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.phase += 0.018;
+
+        if (p.x < -4) p.x = innerWidth + 4;
+        if (p.x > innerWidth + 4) p.x = -4;
+        if (p.y < -4) p.y = innerHeight + 4;
+        if (p.y > innerHeight + 4) p.y = -4;
+
+        const alpha = p.a * (
+            0.55 + 0.45 * Math.sin(p.phase)
+        );
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+
+        ctx.fillStyle =
+            `rgba(255, ${145 + Math.floor(70 * alpha)}, ` +
+            `${20 + Math.floor(25 * alpha)}, ${alpha})`;
+
+        ctx.fill();
+    }
+
+    requestAnimationFrame(drawParticles);
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+requestAnimationFrame(drawParticles);
+
+/* Demo system usage values.
+   These are simulated until we connect Python. */
+
+function sampleGauges() {
+    document.getElementById("cpu").textContent =
+        `${Math.floor(8 + Math.random() * 18)}%`;
+
+    document.getElementById("ram").textContent =
+        `${Math.floor(28 + Math.random() * 12)}%`;
+
+    document.getElementById("disk").textContent =
+        `${Math.floor(35 + Math.random() * 8)}%`;
+}
+
+sampleGauges();
+setInterval(sampleGauges, 2600);
+
+/* Animated activity graphs */
+
+function drawSpark(id) {
+    const c = document.getElementById(id);
+    const cctx = c.getContext("2d");
+
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+
+    cctx.clearRect(0, 0, w, h);
+    cctx.beginPath();
+
+    for (let x = 0; x < w; x += 3) {
+        const y =
+            h * 0.5 +
+            Math.sin(x * 0.035 + Date.now() * 0.001) * h * 0.17 +
+            Math.sin(x * 0.087 + Date.now() * 0.0006) * h * 0.12 +
+            (Math.random() - 0.5) * h * 0.13;
+
+        if (x === 0) {
+            cctx.moveTo(x, y);
+        } else {
+            cctx.lineTo(x, y);
+        }
+    }
+
+    cctx.strokeStyle = "#ffb21b";
+    cctx.lineWidth = 2;
+    cctx.shadowBlur = 7;
+    cctx.shadowColor = "#ff8700";
+    cctx.stroke();
+}
+
+function animateSparks() {
+    ["spark1", "spark2", "spark3"].forEach(drawSpark);
+    requestAnimationFrame(animateSparks);
+}
+
+animateSparks();
+
+
+/* =====================================================
+   JARVIS ENERGY CORE — ENHANCED AMBER HOLOGRAM
+   Layers:
+   1. Ambient energy glow
+   2. Large, visible 3D wireframe sphere
+   3. Straight radial energy beams
+   4. Orbital particle field
+   5. Irregular outermost broken orbital traces
+   ===================================================== */
+
+   const coreCanvas = document.getElementById("coreCanvas");
+
+if (!coreCanvas) {
+    throw new Error(
+        'JARVIS core canvas not found. Add a canvas with id="coreCanvas".'
+    );
+}
+
+const coreCtx = coreCanvas.getContext("2d");
+
+let coreWidth = 0;
+let coreHeight = 0;
+let coreDots = [];
+
+const TAU = Math.PI * 2;
+
+function randomBetween(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+/* -----------------------------------------------------
+   RESIZE AND GENERATE ORBITING PARTICLES
+   ----------------------------------------------------- */
+
+function resizeCore() {
+    const rect = coreCanvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    coreWidth = rect.width;
+    coreHeight = rect.height;
+
+    coreCanvas.width = Math.max(1, Math.round(rect.width * dpr));
+    coreCanvas.height = Math.max(1, Math.round(rect.height * dpr));
+
+    coreCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const count = Math.min(
+        1500,
+        Math.max(650, Math.floor(rect.width * rect.height / 65))
+    );
+
+    coreDots = Array.from({ length: count }, (_, i) => {
+        const group = Math.random();
+
+        // Most particles occupy orbital bands around the sphere.
+        let orbitRadius;
+
+        if (group < 0.58) {
+            orbitRadius = randomBetween(0.255, 0.325);
+        } else if (group < 0.86) {
+            orbitRadius = randomBetween(0.315, 0.365);
+        } else if (group < 0.96) {
+            orbitRadius = randomBetween(0.355, 0.395);
+        } else {
+            orbitRadius = randomBetween(0.19, 0.285);
+        }
+
+        return {
+            angle: Math.random() * TAU,
+            orbitRadius,
+
+            // Tilted elliptical orbits overlap to create
+            // the layered orbital look of the reference.
+            flatten: randomBetween(0.58, 1.0),
+            tilt: randomBetween(-0.85, 0.85),
+            orbitGroup: Math.floor(Math.random() * 7),
+
+            speed: randomBetween(0.00018, 0.00075) *
+                (Math.random() < 0.5 ? -1 : 1),
+
+            size: randomBetween(0.45, 1.65),
+            alpha: randomBetween(0.45, 1.0),
+
+            phase: Math.random() * TAU,
+            flickerSpeed: randomBetween(0.002, 0.009),
+
+            color: Math.random() < 0.19
+                ? "255,246,174"
+                : Math.random() < 0.65
+                    ? "255,176,35"
+                    : "255,104,8"
+        };
+    });
+}
+
+/* -----------------------------------------------------
+   DRAW THE ENERGY CORE
+   ----------------------------------------------------- */
+
+function drawCore(time) {
+    const ctx = coreCtx;
+    const w = coreWidth;
+    const h = coreHeight;
+
+    if (!w || !h) {
+        requestAnimationFrame(drawCore);
+        return;
+    }
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const unit = Math.min(w, h);
+
+    const speaking = document.body.classList.contains("speaking");
+    const processing = document.body.classList.contains("processing");
+
+    const motion = speaking ? 2.0 : processing ? 1.35 : 0.7;
+
+    const pulse = speaking
+        ? 1.035 + 0.045 * Math.sin(time * 0.012)
+        : processing
+            ? 1.02 + 0.025 * Math.sin(time * 0.006)
+            : 1 + 0.012 * Math.sin(time * 0.002);
+
+    ctx.clearRect(0, 0, w, h);
+
+    /* =================================================
+       LAYER 1 — BRIGHT AMBER AMBIENT GLOW
+       ================================================= */
+
+    const glowRadius = unit * 0.39 * pulse;
+
+    const ambient = ctx.createRadialGradient(
+        cx, cy, unit * 0.015,
+        cx, cy, glowRadius
+    );
+
+    ambient.addColorStop(0, "rgba(255,246,155,0.44)");
+    ambient.addColorStop(0.12, "rgba(255,210,55,0.30)");
+    ambient.addColorStop(0.32, "rgba(255,136,0,0.18)");
+    ambient.addColorStop(0.62, "rgba(255,70,0,0.07)");
+    ambient.addColorStop(1, "rgba(255,55,0,0)");
+
+    ctx.fillStyle = ambient;
+    ctx.fillRect(0, 0, w, h);
+
+    /* =================================================
+       LAYER 2 — LARGER, BRIGHTER WEBBED SPHERE
+
+       Curved meridians and crossing tilted loops create
+       a hollow, intricate 3D wireframe around the core.
+       No filled sphere is drawn.
+       ================================================= */
+
+    const sphereRx = unit * 0.275 * pulse;
+    const sphereRy = unit * 0.255 * pulse;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Soft outer silhouette of the wireframe.
+    ctx.beginPath();
+    ctx.ellipse(
+        0, 0, sphereRx, sphereRy, 0, 0, TAU
+    );
+
+    ctx.strokeStyle = "rgba(255,174,39,0.78)";
+    ctx.lineWidth = 1.15;
+    ctx.shadowBlur = 9;
+    ctx.shadowColor = "#ff8a00";
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Curved meridian loops, like wires wrapped around
+    // a hollow sphere viewed from different angles.
+    for (let i = 0; i < 19; i++) {
+        const rotation =
+            i * Math.PI / 19 +
+            Math.sin(time * 0.00012 + i * 0.7) * 0.09;
+
+        const widthFactor = 0.10 + ((i * 7) % 17) / 17 * 0.90;
+
+        ctx.save();
+        ctx.rotate(rotation);
+
+        ctx.beginPath();
+        ctx.ellipse(
+            0, 0,
+            sphereRx * widthFactor,
+            sphereRy * (0.91 + 0.09 * Math.sin(i)),
+            Math.sin(i * 1.7) * 0.13,
+            0, TAU
+        );
+
+        ctx.strokeStyle = i % 4 === 0
+            ? "rgba(255,226,128,0.94)"
+            : "rgba(255,143,22,0.78)";
+
+        ctx.lineWidth = i % 4 === 0 ? 1.05 : 0.72;
+        ctx.shadowBlur = i % 4 === 0 ? 5 : 2;
+        ctx.shadowColor = "#ff9b18";
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+    }
+
+    // Intersecting oblique loops make the structure look
+    // woven, rather than like a globe with horizontal bands.
+    for (let i = 0; i < 17; i++) {
+        const rotation =
+            i * 0.29 - 1.8 +
+            Math.sin(time * 0.00009 + i) * 0.07;
+
+        ctx.save();
+        ctx.rotate(rotation);
+
+        ctx.beginPath();
+        ctx.ellipse(
+            sphereRx * Math.sin(i * 1.8) * 0.09,
+            sphereRy * Math.cos(i * 1.2) * 0.08,
+            sphereRx * (0.55 + (i % 5) * 0.075),
+            sphereRy * (0.19 + (i % 6) * 0.105),
+            Math.sin(i * 0.65) * 0.30,
+            0, TAU
+        );
+
+        ctx.strokeStyle = i % 4 === 0
+            ? "rgba(255,216,112,0.86)"
+            : "rgba(255,126,15,0.65)";
+
+        ctx.lineWidth = i % 4 === 0 ? 0.95 : 0.62;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // Fine, irregular crossing strands inside the web.
+    for (let i = 0; i < 12; i++) {
+        ctx.save();
+
+        ctx.rotate(
+            i * 0.47 + Math.sin(time * 0.00007 + i) * 0.12
+        );
+
+        ctx.beginPath();
+        ctx.ellipse(
+            sphereRx * 0.04,
+            sphereRy * Math.sin(i * 2) * 0.07,
+            sphereRx * (0.40 + (i % 4) * 0.12),
+            sphereRy * (0.13 + (i % 5) * 0.07),
+            0.20 * Math.cos(i),
+            0, TAU
+        );
+
+        ctx.strokeStyle = "rgba(255,224,143,0.68)";
+        ctx.lineWidth = 0.55;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    ctx.restore();
+
+     /* =================================================
+    LAYER 3 — LONGER, BRIGHTER RADIAL ENERGY BEAMS
+    ================================================= */
+
+    const beamCount = 40;
+
+    for (let i = 0; i < beamCount; i++) {
+        const angle =
+            i * TAU / beamCount +
+            Math.sin(time * 0.00005 + i) * 0.025;
+
+        const inner = unit * 0.018;
+
+        // Extend the beams farther beyond the webbed sphere.
+        const outer = unit * (
+            0.405 + ((i * 11) % 9) * 0.010
+        ) * pulse;
+
+        const x1 = cx + Math.cos(angle) * inner;
+        const y1 = cy + Math.sin(angle) * inner;
+        const x2 = cx + Math.cos(angle) * outer;
+        const y2 = cy + Math.sin(angle) * outer;
+
+        const bright = i % 4 === 0;
+
+        const beam = ctx.createLinearGradient(
+            x1, y1, x2, y2
+        );
+
+        beam.addColorStop(0, "rgba(255,255,225,1)");
+        beam.addColorStop(0.22, "rgba(255,239,112,1)");
+        beam.addColorStop(
+            0.66,
+            bright
+                ? "rgba(255,151,16,0.98)"
+                : "rgba(255,159,24,0.88)"
+        );
+        beam.addColorStop(1, "rgba(255,101,0,0.20)");
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+
+        ctx.strokeStyle = beam;
+        ctx.lineWidth = bright ? 2.0 : 1.15;
+
+        if (bright) {
+            ctx.shadowBlur = 13;
+            ctx.shadowColor = "#ff9a00";
+        }
+
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Animated energy points travel along selected beams.
+        if (bright) {
+            const travel = (
+                time * 0.00028 + i * 0.19
+            ) % 1;
+
+            const sx = x1 + (x2 - x1) * travel;
+            const sy = y1 + (y2 - y1) * travel;
+
+            ctx.beginPath();
+            ctx.arc(sx, sy, 1.6, 0, TAU);
+            ctx.fillStyle = "#fff5b5";
+            ctx.shadowBlur = 11;
+            ctx.shadowColor = "#ffb21d";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    /* =================================================
+       LAYER 4 — ORBITAL PARTICLE CLOUD
+
+       Particles travel around tilted elliptical orbital
+       paths. Their radii stay in bands, producing a dense
+       rotating cloud instead of a uniform circular halo.
+       ================================================= */
+
+    for (const p of coreDots) {
+        p.angle += p.speed * motion;
+        p.phase += p.flickerSpeed * motion;
+
+        const groupRotation =
+            time * 0.000035 * (p.orbitGroup % 2 ? -1 : 1);
+
+        const a = p.angle + groupRotation + p.tilt;
+
+        const orbitRx = unit * p.orbitRadius * pulse;
+        const orbitRy = orbitRx * p.flatten;
+
+        // Elliptical orbit, tilted relative to the canvas.
+        const rawX = Math.cos(a) * orbitRx;
+        const rawY = Math.sin(a) * orbitRy;
+
+        const tiltAngle = p.tilt * 0.85;
+
+        const x = cx +
+            rawX * Math.cos(tiltAngle) -
+            rawY * Math.sin(tiltAngle);
+
+        const y = cy +
+            rawX * Math.sin(tiltAngle) +
+            rawY * Math.cos(tiltAngle);
+
+        const flicker =
+            0.55 + 0.45 * Math.sin(time * 0.004 + p.phase);
+
+        const alpha = Math.max(
+            0.12,
+            Math.min(1, p.alpha * flicker)
+        );
+
+        const size = p.size * (speaking ? 1.15 : 1);
+
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, TAU);
+
+        ctx.fillStyle = `rgba(${p.color},${alpha})`;
+
+        if (p.size > 1.05) {
+            ctx.shadowBlur = speaking ? 9 : 6;
+            ctx.shadowColor = "#ff9200";
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.fill();
+
+        // A few particles leave tiny glowing trails.
+        if (p.size > 1.25 && p.orbitGroup % 3 === 0) {
+            const trailX = x - Math.sin(a) * size * 3.8;
+            const trailY = y + Math.cos(a) * size * 3.8;
+
+            ctx.beginPath();
+            ctx.moveTo(trailX, trailY);
+            ctx.lineTo(x, y);
+
+            ctx.strokeStyle = `rgba(255,153,25,${alpha * 0.65})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+        }
+    }
+
+    ctx.shadowBlur = 0;
+
+    /* =================================================
+       LAYER 5 — OUTER BROKEN ORBITAL CURVES
+
+       These curves sit farther from the webbed sphere.
+       They remain irregular and disconnected.
+       ================================================= */
+
+    // Long, faint orbital fragments.
+    for (let i = 0; i < 17; i++) {
+        const rotation =
+            i * 2.399 +
+            time * 0.000025 * (i % 2 === 0 ? 1 : -1);
+
+        const radius = unit * (
+            0.455 + ((i * 7) % 8) * 0.0045
+        );
+
+        const rx = radius * (0.90 + (i % 4) * 0.055);
+        const ry = radius * (0.75 + (i % 5) * 0.045);
+
+        const start = rotation + 0.3 + (i % 4) * 0.38;
+        const length = 0.32 + ((i * 13) % 9) * 0.18;
+
+        ctx.beginPath();
+        ctx.ellipse(
+            cx + Math.sin(i * 2.7) * unit * 0.014,
+            cy + Math.cos(i * 1.9) * unit * 0.014,
+            rx,
+            ry,
+            rotation * 0.20,
+            start,
+            start + length
+        );
+
+        ctx.strokeStyle = i % 4 === 0
+            ? "rgba(255,95,12,0.82)"
+            : "rgba(255,150,35,0.53)";
+
+        ctx.lineWidth = i % 4 === 0 ? 1.25 : 0.7;
+        ctx.stroke();
+    }
+
+    // Short, brighter, disconnected curved traces.
+    for (let i = 0; i < 27; i++) {
+        const rotation =
+            i * 2.399 +
+            Math.sin(time * 0.00007 + i) * 0.07;
+
+        const radius = unit * (
+            0.455 + ((i * 17) % 11) * 0.004
+        );
+
+        const start = rotation + 0.15 + (i % 6) * 0.22;
+        const length = 0.08 + ((i * 7) % 7) * 0.095;
+
+        ctx.beginPath();
+        ctx.ellipse(
+            cx,
+            cy,
+            radius * (0.91 + (i % 3) * 0.04),
+            radius * (0.77 + (i % 4) * 0.045),
+            rotation * 0.17,
+            start,
+            start + length
+        );
+
+        ctx.strokeStyle = i % 5 === 0
+            ? "rgba(255,77,15,0.98)"
+            : "rgba(255,187,49,0.70)";
+
+        ctx.lineWidth = i % 5 === 0 ? 1.8 : 0.95;
+        ctx.stroke();
+    }
+
+    // Outer sparks, without creating a complete circular border.
+    for (let i = 0; i < 16; i++) {
+        const angle =
+            time * 0.00010 * (i % 2 === 0 ? 1 : -1) +
+            i * 2.4;
+
+        const radius = unit * (
+            0.46 + (i % 5) * 0.006
+        );
+
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius * 0.83;
+
+        ctx.beginPath();
+        ctx.arc(
+            x,
+            y,
+            i % 4 === 0 ? 1.7 : 0.85,
+            0,
+            TAU
+        );
+
+        ctx.fillStyle = "#ffd16a";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ff8100";
+        ctx.fill();
+    }
+
+    ctx.shadowBlur = 0;
+
+    /* =================================================
+       CENTRAL ENERGY LIGHT
+
+       The existing .core CSS element should remain
+       centered over this glow.
+       ================================================= */
+
+    const centerGlow = ctx.createRadialGradient(
+        cx, cy, 0,
+        cx, cy, unit * 0.115 * pulse
+    );
+
+    centerGlow.addColorStop(0, "rgba(255,255,225,0.85)");
+    centerGlow.addColorStop(0.14, "rgba(255,255,174,0.72)");
+    centerGlow.addColorStop(0.32, "rgba(255,232,92,0.44)");
+    centerGlow.addColorStop(0.62, "rgba(255,151,10,0.18)");
+    centerGlow.addColorStop(1, "rgba(255,105,0,0)");
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, unit * 0.115 * pulse, 0, TAU);
+    ctx.fillStyle = centerGlow;
+    ctx.fill();
+
+    requestAnimationFrame(drawCore);
+}
+
+/* -----------------------------------------------------
+   START ANIMATION
+   ----------------------------------------------------- */
+
+window.addEventListener("resize", resizeCore);
+
+resizeCore();
+requestAnimationFrame(drawCore);
+
+/* Keyboard shortcuts:
+   1 = Listening
+   2 = Executing
+   3 = Speaking
+*/
+
+window.addEventListener("keydown", e => {
+    if (e.key === "1") setState("idle");
+    if (e.key === "2") setState("processing");
+    if (e.key === "3") setState("speaking");
+});
+</script>
+
+</body>
+</html>
