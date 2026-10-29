@@ -281,7 +281,6 @@ apps = [
 
 close_apps = [
     ["chrome", "google-chrome"],
-    ["vs code", "code"],
     ["terminal", "gnome-terminal"],
     ["files", "nautilus"]
 ]
