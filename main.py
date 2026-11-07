@@ -18,6 +18,81 @@ import wave
 import webbrowser
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from piper import PiperVoice, SynthesisConfig
+import serial
+
+# ---------------------------------------------------
+#      ARDUINO UNO CONTROLS
+# ---------------------------------------------------
+
+SERIAL_PORT = "/dev/ttyACM0"
+BAUD_RATE = 115200
+
+electronics = None
+_electronics_lock = threading.Lock()
+_last_electronics_state = None
+
+
+def connect_electronics():
+    global electronics
+    try:
+        electronics = serial.Serial(SERIAL_PORT,BAUD_RATE,timeout=1)
+        time.sleep(2)
+
+        print("Connected.", flush=True)
+        return True
+
+    except serial.SerialException as e:
+        electronics = None
+        print(f"Connection unavailable: {e}", flush=True)
+        return False
+
+
+def set_electronics_state(state):
+    global _last_electronics_state
+
+    valid_states = ["IDLE","LISTENING","PROCESSING","RESPONDING"]
+
+    state = state.upper()
+
+    if state not in valid_states:
+        return
+
+    with _electronics_lock:
+
+        if state == _last_electronics_state:
+            return
+
+        if electronics is not None and electronics.is_open:
+            try:
+                electronics.write((state + "\n").encode("utf-8"))
+                electronics.flush()
+
+                print(f"ELECTRONICS: {state}", flush=True)
+
+                _last_electronics_state = state
+
+            except serial.SerialException as e:
+                print("Electronics communication error:", e)
+
+
+def set_jarvis_state(state, message=None, last_command=None):
+
+    # Update the existing GUI
+    set_gui_state(state, message, last_command)
+
+    # Translate GUI states into Arduino commands
+    state_mapping = {
+        "idle": "IDLE",
+        "listening": "LISTENING",
+        "processing": "PROCESSING",
+        "speaking": "RESPONDING"
+    }
+
+    electronics_state = state_mapping.get(state.lower())
+
+    if electronics_state:
+        set_electronics_state(electronics_state)
+
 
 # -----------------------------------------------------
 # JARVIS GUI BRIDGE (local machine only)
@@ -67,6 +142,11 @@ class JarvisGUIHandler(SimpleHTTPRequestHandler):
         if not self.path.startswith("/api/state"):
             super().log_message(format, *args)
 
+
+connect_electronics()
+set_electronics_state("IDLE")
+
+start_gui_server()
 
 def start_gui_server():
     try:
@@ -130,7 +210,7 @@ def say(text):
     if not text:
         return
 
-    set_gui_state("speaking", text)
+    set_jarvis_state("speaking", text)
     print("JARVIS:", text, flush=True)
 
     speech_text = clean_text(text)
@@ -171,7 +251,7 @@ def say(text):
     except Exception as e:
         print(f"JARVIS voice error: {e}", flush=True)
     finally:
-        set_gui_state("idle", text)
+        set_jarvis_state("idle", text)
 
 
 def respond(text):
@@ -295,7 +375,10 @@ def set_timer(seconds):
 
 
 def takeCommand(wake_only=False):
-    set_gui_state("idle", "Listening for the wake word..." if wake_only else "Listening for your command...")
+    set_jarvis_state(
+        "listening",
+        "Listening for the wake word..." if wake_only else "Listening for your command..."
+    )
     r = sr.Recognizer()
     r.energy_threshold = 300
     r.dynamic_energy_threshold = True
@@ -318,7 +401,7 @@ def takeCommand(wake_only=False):
 
         query = r.recognize_google(audio, language="en-US")
         print("User said:", query, flush=True)
-        set_gui_state("processing", f"Heard: {query}", last_command=query)
+        set_jarvis_state("processing", f"Heard: {query}", last_command=query)
 
         lower_query = query.lower().strip()
 
@@ -717,4 +800,8 @@ while not exit_program:
         answer = ask_ai(text)
 
         if answer:
-            respond(answer)
+            respond(answer)        
+    # Electronics 
+    if electronics is not None and electronics.is_open:
+        electronics.close()
+        print("JARVIS electronics disconnected.", flush=True)
